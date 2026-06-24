@@ -44,18 +44,50 @@ export default function Dashboard({ session }) {
         if (profileError) throw profileError;
         setUserProfile(profile);
 
-        // Fetch or create board
-        const { data: boards, error: boardsError } = await supabase
-          .from('boards')
-          .select('*')
-          .order('created_at', { ascending: true });
+        let activeBoard = null;
 
-        if (boardsError) throw boardsError;
+        // For admins: fetch the first workspace board (shared board)
+        if (profile?.role === 'admin') {
+          const { data: adminBoards, error: adminBoardsError } = await supabase
+            .from('boards')
+            .select('*')
+            .order('created_at', { ascending: true })
+            .limit(1);
 
-        let activeBoard = boards?.[0];
+          if (!adminBoardsError && adminBoards?.length > 0) {
+            activeBoard = adminBoards[0];
+          }
+        }
 
+        // For members: find boards they OWN
         if (!activeBoard) {
-          // Auto create a board for this workspace if none exists
+          const { data: ownedBoards, error: ownedError } = await supabase
+            .from('boards')
+            .select('*')
+            .eq('owner_id', user.id)
+            .order('created_at', { ascending: true })
+            .limit(1);
+
+          if (!ownedError && ownedBoards?.length > 0) {
+            activeBoard = ownedBoards[0];
+          }
+        }
+
+        // Fallback: boards the user is a member of
+        if (!activeBoard) {
+          const { data: memberRows, error: memberError } = await supabase
+            .from('board_members')
+            .select('board_id, boards(*)')
+            .eq('user_id', user.id)
+            .limit(1);
+
+          if (!memberError && memberRows?.length > 0) {
+            activeBoard = memberRows[0].boards;
+          }
+        }
+
+        // If still no board, auto-create a personal workspace
+        if (!activeBoard) {
           const { data: newBoard, error: createBoardError } = await supabase
             .from('boards')
             .insert({
@@ -68,7 +100,7 @@ export default function Dashboard({ session }) {
           if (createBoardError) throw createBoardError;
           activeBoard = newBoard;
 
-          // Insert the 3 default columns: 'To Do', 'In Progress', 'Done'
+          // Insert the 3 default columns
           const defaultCols = [
             { board_id: activeBoard.board_id, title: 'To Do', position: 0 },
             { board_id: activeBoard.board_id, title: 'In Progress', position: 1 },
