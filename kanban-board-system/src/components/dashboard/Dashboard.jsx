@@ -18,11 +18,13 @@ export default function Dashboard({ session }) {
   // Admin Oversight States
   const [teamMembers, setTeamMembers] = useState([]);
   const [allTasks, setAllTasks] = useState([]);
+  const [allBoards, setAllBoards] = useState([]);
   const [oversightLoading, setOversightLoading] = useState(false);
 
   // Quick Task Creator Form (Admin)
   const [quickTask, setQuickTask] = useState({ title: '', tag: 'Backend', columnId: '' });
   const [columnsList, setColumnsList] = useState([]);
+  const [selectedBoardId, setSelectedBoardId] = useState(null);
 
   const user = session?.user;
 
@@ -132,10 +134,10 @@ export default function Dashboard({ session }) {
 
   // 2. Fetch admin oversight data if the active tab changes to Oversight
   useEffect(() => {
-    if (activeTab === 'admin-oversight' && boardId) {
+    if (activeTab === 'admin-oversight') {
       loadOversightData();
     }
-  }, [activeTab, boardId]);
+  }, [activeTab]);
 
   const loadOversightData = async () => {
     setOversightLoading(true);
@@ -149,24 +151,37 @@ export default function Dashboard({ session }) {
       if (membersError) throw membersError;
       setTeamMembers(members || []);
 
-      // Fetch columns list for selection dropdown
-      const { data: cols, error: colsError } = await supabase
-        .from('columns')
-        .select('*')
-        .eq('board_id', boardId)
-        .order('position', { ascending: true });
+      // Fetch ALL boards across all users for admin oversight
+      const { data: boards, error: boardsError } = await supabase
+        .from('boards')
+        .select('*, users(display_name, email)')
+        .order('created_at', { ascending: true });
 
-      if (colsError) throw colsError;
-      setColumnsList(cols || []);
-      if (cols && cols.length > 0) {
-        setQuickTask((prev) => ({ ...prev, columnId: cols[0].column_id }));
+      if (boardsError) throw boardsError;
+      setAllBoards(boards || []);
+
+      // Default to the first board for task assignment
+      const firstBoard = boards?.[0];
+      if (firstBoard) {
+        setSelectedBoardId(firstBoard.board_id);
+
+        // Load columns for the default selected board
+        const { data: cols, error: colsError } = await supabase
+          .from('columns')
+          .select('*')
+          .eq('board_id', firstBoard.board_id)
+          .order('position', { ascending: true });
+
+        if (!colsError && cols?.length > 0) {
+          setColumnsList(cols);
+          setQuickTask((prev) => ({ ...prev, columnId: cols[0].column_id }));
+        }
       }
 
-      // Fetch all tasks matching the board
+      // Fetch ALL tasks from ALL boards (no board_id filter)
       const { data: tasks, error: tasksError } = await supabase
         .from('tasks')
-        .select('*, columns(title), users(email, display_name)')
-        .eq('board_id', boardId)
+        .select('*, columns(title, board_id), users(email, display_name)')
         .order('created_at', { ascending: false });
 
       if (tasksError) throw tasksError;
@@ -180,9 +195,27 @@ export default function Dashboard({ session }) {
     }
   };
 
+  // When admin changes which board to assign to, reload columns for that board
+  const handleBoardSelectionChange = async (newBoardId) => {
+    setSelectedBoardId(newBoardId);
+    const { data: cols, error: colsError } = await supabase
+      .from('columns')
+      .select('*')
+      .eq('board_id', newBoardId)
+      .order('position', { ascending: true });
+
+    if (!colsError && cols?.length > 0) {
+      setColumnsList(cols);
+      setQuickTask((prev) => ({ ...prev, columnId: cols[0].column_id }));
+    } else {
+      setColumnsList([]);
+      setQuickTask((prev) => ({ ...prev, columnId: '' }));
+    }
+  };
+
   const handleCreateQuickTask = async (e) => {
     e.preventDefault();
-    if (!quickTask.title.trim() || !quickTask.columnId) return;
+    if (!quickTask.title.trim() || !quickTask.columnId || !selectedBoardId) return;
 
     try {
       const columnTasks = allTasks.filter((t) => t.column_id === quickTask.columnId);
@@ -191,7 +224,7 @@ export default function Dashboard({ session }) {
       const { error: insertError } = await supabase
         .from('tasks')
         .insert({
-          board_id: boardId,
+          board_id: selectedBoardId,
           column_id: quickTask.columnId,
           title: quickTask.title.trim(),
           tag: quickTask.tag,
@@ -202,7 +235,7 @@ export default function Dashboard({ session }) {
       if (insertError) throw insertError;
 
       setQuickTask((prev) => ({ ...prev, title: '' }));
-      loadOversightData(); // reload
+      loadOversightData(); // reload all tasks
     } catch (err) {
       alert('Failed to assign task: ' + err.message);
     }
@@ -371,18 +404,32 @@ export default function Dashboard({ session }) {
                     </select>
                   </div>
                   <div className="form-group">
+                    <label className="form-label">Assign to Member Board</label>
+                    <select
+                      className="form-input"
+                      value={selectedBoardId || ''}
+                      onChange={(e) => handleBoardSelectionChange(e.target.value)}
+                    >
+                      {allBoards.map((b) => (
+                        <option key={b.board_id} value={b.board_id}>
+                          {b.title} — {b.users?.display_name || b.users?.email || 'Unknown owner'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
                     <label className="form-label">Status Column</label>
                     <select
                       className="form-input"
                       value={quickTask.columnId}
                       onChange={(e) => setQuickTask({ ...quickTask, columnId: e.target.value })}
                     >
-                      {columnsList.map((col) => (
+                      {columnsList.length > 0 ? columnsList.map((col) => (
                         <option key={col.column_id} value={col.column_id}>{col.title}</option>
-                      ))}
+                      )) : <option value="">No columns available</option>}
                     </select>
                   </div>
-                  <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
+                  <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }} disabled={!selectedBoardId || !quickTask.columnId}>
                     Assign Task
                   </button>
                 </form>
@@ -432,28 +479,35 @@ export default function Dashboard({ session }) {
                         <th style={{ padding: '0.75rem 0.5rem' }}>Ticket Title</th>
                         <th style={{ padding: '0.75rem 0.5rem' }}>Category</th>
                         <th style={{ padding: '0.75rem 0.5rem' }}>Column Status</th>
+                        <th style={{ padding: '0.75rem 0.5rem' }}>Board</th>
                         <th style={{ padding: '0.75rem 0.5rem' }}>Created By</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {allTasks.map((t) => (
-                        <tr key={t.task_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '1rem 0.5rem', fontWeight: 600, color: '#0f172a' }}>{t.title}</td>
-                          <td style={{ padding: '1rem 0.5rem' }}>
-                            {t.tag ? (
-                              <span style={{ fontSize: '0.7rem', background: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{t.tag}</span>
-                            ) : '-'}
-                          </td>
-                          <td style={{ padding: '1rem 0.5rem' }}>
-                            <span style={{ padding: '0.25rem 0.5rem', background: 'rgba(37,99,235,0.06)', color: 'var(--primary)', fontWeight: 600, borderRadius: '6px', fontSize: '0.75rem' }}>
-                              {t.columns?.title || 'Unknown'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '1rem 0.5rem', color: '#64748b', fontSize: '0.75rem' }}>
-                            {t.users?.display_name || t.users?.email || 'Guest'}
-                          </td>
-                        </tr>
-                      ))}
+                      {allTasks.map((t) => {
+                        const ownerBoard = allBoards.find((b) => b.board_id === t.board_id);
+                        return (
+                          <tr key={t.task_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '1rem 0.5rem', fontWeight: 600, color: '#0f172a' }}>{t.title}</td>
+                            <td style={{ padding: '1rem 0.5rem' }}>
+                              {t.tag ? (
+                                <span style={{ fontSize: '0.7rem', background: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{t.tag}</span>
+                              ) : '-'}
+                            </td>
+                            <td style={{ padding: '1rem 0.5rem' }}>
+                              <span style={{ padding: '0.25rem 0.5rem', background: 'rgba(37,99,235,0.06)', color: 'var(--primary)', fontWeight: 600, borderRadius: '6px', fontSize: '0.75rem' }}>
+                                {t.columns?.title || 'Unknown'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '1rem 0.5rem', color: '#64748b', fontSize: '0.75rem' }}>
+                              {ownerBoard?.title || 'Unknown Board'}
+                            </td>
+                            <td style={{ padding: '1rem 0.5rem', color: '#64748b', fontSize: '0.75rem' }}>
+                              {t.users?.display_name || t.users?.email || 'Guest'}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
