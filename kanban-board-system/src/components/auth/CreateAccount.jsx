@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabaseClient.js';
 
 export default function CreateAccount() {
   const [role, setRole] = useState('member'); // 'member' (Team Member) | 'admin' (Administrator)
+  const [adminCode, setAdminCode] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,6 +18,11 @@ export default function CreateAccount() {
     e.preventDefault();
     if (!email || !password || !displayName) {
       setError('Please fill in all fields.');
+      return;
+    }
+
+    if (role === 'admin' && adminCode !== 'StartupLabAdmin') {
+      setError('Invalid Admin Access Code. Please contact your organization administrator.');
       return;
     }
 
@@ -127,6 +133,22 @@ export default function CreateAccount() {
                 </button>
               </div>
             </div>
+
+            {role === 'admin' && (
+              <div className="form-group">
+                <label className="form-label" htmlFor="adminCode">Admin Access Code</label>
+                <input
+                  id="adminCode"
+                  type="password"
+                  className="form-input"
+                  placeholder="Enter organization security code..."
+                  value={adminCode}
+                  onChange={(e) => setAdminCode(e.target.value)}
+                  required
+                  disabled={loading || success}
+                />
+              </div>
+            )}
 
             <div className="form-group">
               <label className="form-label" htmlFor="displayName">Full Name</label>
