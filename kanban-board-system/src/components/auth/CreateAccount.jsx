@@ -182,7 +182,7 @@ export default function CreateAccount() {
                 id="displayName"
                 type="text"
                 className="form-input"
-                placeholder="Jane Doe"
+                placeholder="Tagab Manilla"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 required
