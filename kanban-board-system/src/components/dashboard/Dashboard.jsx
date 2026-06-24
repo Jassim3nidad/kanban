@@ -48,31 +48,17 @@ export default function Dashboard({ session }) {
 
         let activeBoard = null;
 
-        // For admins: fetch the first workspace board (shared board)
-        if (profile?.role === 'admin') {
-          const { data: adminBoards, error: adminBoardsError } = await supabase
-            .from('boards')
-            .select('*')
-            .order('created_at', { ascending: true })
-            .limit(1);
+        // Every user (admin or member) gets their OWN board by owner_id.
+        // Admins view other people's data only through the Oversight tab — NOT by sharing a board.
+        const { data: ownedBoards, error: ownedError } = await supabase
+          .from('boards')
+          .select('*')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: true })
+          .limit(1);
 
-          if (!adminBoardsError && adminBoards?.length > 0) {
-            activeBoard = adminBoards[0];
-          }
-        }
-
-        // For members: find boards they OWN
-        if (!activeBoard) {
-          const { data: ownedBoards, error: ownedError } = await supabase
-            .from('boards')
-            .select('*')
-            .eq('owner_id', user.id)
-            .order('created_at', { ascending: true })
-            .limit(1);
-
-          if (!ownedError && ownedBoards?.length > 0) {
-            activeBoard = ownedBoards[0];
-          }
+        if (!ownedError && ownedBoards?.length > 0) {
+          activeBoard = ownedBoards[0];
         }
 
         // Fallback: boards the user is a member of
