@@ -418,3 +418,28 @@ end $$;
 -- Enable replica identity full for deletion event payloads in Realtime
 alter table public.tasks replica identity full;
 alter table public.columns replica identity full;
+
+-- =========================================
+-- ADMINISTRATOR BYPASS POLICIES
+-- =========================================
+
+create policy "Allow admins full access to boards" on public.boards for all using (
+  exists (select 1 from public.users where users.id = auth.uid() and users.role = 'admin')
+);
+
+create policy "Allow admins full access to columns" on public.columns for all using (
+  exists (select 1 from public.users where users.id = auth.uid() and users.role = 'admin')
+);
+
+create policy "Allow admins full access to tasks" on public.tasks for all using (
+  exists (select 1 from public.users where users.id = auth.uid() and users.role = 'admin')
+);
+
+create policy "Allow admins full access to board_members" on public.board_members for all using (
+  exists (select 1 from public.users where users.id = auth.uid() and users.role = 'admin')
+);
+
+create policy "Allow admins full access to shared_links" on public.shared_links for all using (
+  exists (select 1 from public.users where users.id = auth.uid() and users.role = 'admin')
+);
+

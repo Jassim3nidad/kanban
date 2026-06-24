@@ -196,41 +196,43 @@ export default function Dashboard({ session }) {
         </div>
 
         {/* Tab selection menu */}
-        <div style={{ display: 'flex', gap: '0.5rem', background: '#f1f5f9', padding: '0.25rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <button
-            onClick={() => setActiveTab('intern-board')}
-            className={`btn`}
-            style={{
-              padding: '0.4rem 1.25rem',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              borderRadius: '6px',
-              backgroundColor: activeTab === 'intern-board' ? '#ffffff' : 'transparent',
-              color: activeTab === 'intern-board' ? '#0f172a' : '#64748b',
-              boxShadow: activeTab === 'intern-board' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
-              cursor: 'pointer'
-            }}
-          >
-            Intern Board
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('admin-oversight')}
-            className={`btn`}
-            style={{
-              padding: '0.4rem 1.25rem',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              borderRadius: '6px',
-              backgroundColor: activeTab === 'admin-oversight' ? '#ffffff' : 'transparent',
-              color: activeTab === 'admin-oversight' ? '#0f172a' : '#64748b',
-              boxShadow: activeTab === 'admin-oversight' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
-              cursor: 'pointer'
-            }}
-          >
-            Admin Oversight
-          </button>
-        </div>
+        {userProfile?.role === 'admin' && (
+          <div style={{ display: 'flex', gap: '0.5rem', background: '#f1f5f9', padding: '0.25rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <button
+              onClick={() => setActiveTab('intern-board')}
+              className={`btn`}
+              style={{
+                padding: '0.4rem 1.25rem',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                borderRadius: '6px',
+                backgroundColor: activeTab === 'intern-board' ? '#ffffff' : 'transparent',
+                color: activeTab === 'intern-board' ? '#0f172a' : '#64748b',
+                boxShadow: activeTab === 'intern-board' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Intern Board
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('admin-oversight')}
+              className={`btn`}
+              style={{
+                padding: '0.4rem 1.25rem',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                borderRadius: '6px',
+                backgroundColor: activeTab === 'admin-oversight' ? '#ffffff' : 'transparent',
+                color: activeTab === 'admin-oversight' ? '#0f172a' : '#64748b',
+                boxShadow: activeTab === 'admin-oversight' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Admin Oversight
+            </button>
+          </div>
+        )}
 
         <div className="nav-user">
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
@@ -294,7 +296,7 @@ export default function Dashboard({ session }) {
         {error && <div className="error-message" style={{ marginBottom: '1.5rem' }}>{error}</div>}
 
         {/* Active Tab rendering */}
-        {activeTab === 'intern-board' ? (
+        {activeTab === 'intern-board' || userProfile?.role !== 'admin' ? (
           <div>
             {boardId ? (
               <Board session={session} boardId={boardId} hideHeader={true} />

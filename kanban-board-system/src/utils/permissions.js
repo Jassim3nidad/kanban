@@ -5,6 +5,17 @@ import { supabase } from '../lib/supabaseClient.js';
 // shared_links token-based role for guests.
 export async function getUserRole(boardId, userId, guestToken = null) {
   if (userId) {
+    // 0. Check if user is an administrator
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!profileError && userProfile && userProfile.role === 'admin') {
+      return 'owner';
+    }
+
     // 1. Check if user is board owner
     const { data: board, error: boardError } = await supabase
       .from('boards')
