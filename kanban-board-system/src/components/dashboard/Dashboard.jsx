@@ -481,9 +481,22 @@ export default function Dashboard({ session }) {
                               ) : '-'}
                             </td>
                             <td style={{ padding: '1rem 0.5rem' }}>
-                              <span style={{ padding: '0.25rem 0.5rem', background: 'rgba(37,99,235,0.06)', color: 'var(--primary)', fontWeight: 600, borderRadius: '6px', fontSize: '0.75rem' }}>
-                                {t.columns?.title || 'Unknown'}
-                              </span>
+                              {(() => {
+                                const title = (t.columns?.title || '').toLowerCase();
+                                const statusStyle =
+                                  title === 'to do'
+                                    ? { background: 'rgba(59,130,246,0.12)', color: '#1d4ed8' }
+                                    : title === 'in progress'
+                                    ? { background: 'rgba(245,158,11,0.15)', color: '#b45309' }
+                                    : title === 'done'
+                                    ? { background: 'rgba(16,185,129,0.13)', color: '#065f46' }
+                                    : { background: 'rgba(139,92,246,0.12)', color: '#5b21b6' };
+                                return (
+                                  <span style={{ padding: '0.25rem 0.6rem', fontWeight: 700, borderRadius: '999px', fontSize: '0.72rem', ...statusStyle }}>
+                                    {t.columns?.title || 'Unknown'}
+                                  </span>
+                                );
+                              })()}
                             </td>
                             <td style={{ padding: '1rem 0.5rem', color: '#64748b', fontSize: '0.75rem' }}>
                               {ownerBoard?.title || 'Unknown Board'}
