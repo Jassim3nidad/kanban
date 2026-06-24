@@ -320,7 +320,7 @@ export default function Board({ session = null, guestMode = false, accessMode = 
                 &larr; Dashboard
               </button>
             )}
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff' }}>{board.title}</h2>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-primary)' }}>{board.title}</h2>
             <span className="board-role-badge">
               {guestMode ? `${userRole} (guest)` : userRole}
             </span>
