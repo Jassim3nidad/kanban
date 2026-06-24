@@ -359,6 +359,8 @@ body {
 
 .kanban-container {
   display: flex;
+  justify-content: center;
+  justify-content: safe center;
   gap: 1.25rem;
   padding: 1.5rem 2rem;
   overflow-x: auto;
