@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabaseClient.js';
 export default function CreateAccount() {
   const [role, setRole] = useState('member'); // 'member' (Team Member) | 'admin' (Administrator)
   const [adminCode, setAdminCode] = useState('');
+  const [showAdminCode, setShowAdminCode] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -137,16 +138,41 @@ export default function CreateAccount() {
             {role === 'admin' && (
               <div className="form-group">
                 <label className="form-label" htmlFor="adminCode">Admin Access Code</label>
-                <input
-                  id="adminCode"
-                  type="password"
-                  className="form-input"
-                  placeholder="Enter organization security code..."
-                  value={adminCode}
-                  onChange={(e) => setAdminCode(e.target.value)}
-                  required
-                  disabled={loading || success}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    id="adminCode"
+                    type={showAdminCode ? 'text' : 'password'}
+                    className="form-input"
+                    placeholder="Enter organization security code..."
+                    style={{ width: '100%', paddingRight: '2.5rem' }}
+                    value={adminCode}
+                    onChange={(e) => setAdminCode(e.target.value)}
+                    required
+                    disabled={loading || success}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminCode(!showAdminCode)}
+                    disabled={loading || success}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title={showAdminCode ? 'Hide access code' : 'Show access code'}
+                  >
+                    {showAdminCode ? '👁️' : '🙈'}
+                  </button>
+                </div>
               </div>
             )}
 
