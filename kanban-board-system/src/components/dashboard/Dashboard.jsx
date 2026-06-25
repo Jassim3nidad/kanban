@@ -22,7 +22,7 @@ export default function Dashboard({ session }) {
   const [oversightLoading, setOversightLoading] = useState(false);
 
   // Quick Task Creator Form (Admin)
-  const [quickTask, setQuickTask] = useState({ title: '', tag: 'Backend', columnId: '' });
+  const [quickTask, setQuickTask] = useState({ title: '', description: '', tag: 'Backend', columnId: '' });
   const [columnsList, setColumnsList] = useState([]);
   const [selectedBoardId, setSelectedBoardId] = useState(null);
 
@@ -213,6 +213,7 @@ export default function Dashboard({ session }) {
           board_id: selectedBoardId,
           column_id: quickTask.columnId,
           title: quickTask.title.trim(),
+          description: quickTask.description.trim(),
           tag: quickTask.tag,
           position,
           created_by: user.id
@@ -220,7 +221,7 @@ export default function Dashboard({ session }) {
 
       if (insertError) throw insertError;
 
-      setQuickTask((prev) => ({ ...prev, title: '' }));
+      setQuickTask((prev) => ({ ...prev, title: '', description: '' }));
       loadOversightData(); // reload all tasks
     } catch (err) {
       alert('Failed to assign task: ' + err.message);
@@ -377,6 +378,16 @@ export default function Dashboard({ session }) {
                     />
                   </div>
                   <div className="form-group">
+                    <label className="form-label">Task Description</label>
+                    <textarea
+                      className="form-input"
+                      placeholder="Task description..."
+                      value={quickTask.description}
+                      onChange={(e) => setQuickTask({ ...quickTask, description: e.target.value })}
+                      rows="3"
+                    ></textarea>
+                  </div>
+                  <div className="form-group">
                     <label className="form-label">Category Tag</label>
                     <select
                       className="form-input"
@@ -396,7 +407,9 @@ export default function Dashboard({ session }) {
                       value={selectedBoardId || ''}
                       onChange={(e) => handleBoardSelectionChange(e.target.value)}
                     >
-                      {allBoards.map((b) => (
+                      {allBoards
+                        .filter((b, index, self) => index === self.findIndex((t) => t.owner_id === b.owner_id))
+                        .map((b) => (
                         <option key={b.board_id} value={b.board_id}>
                           {b.title} — {b.users?.display_name || b.users?.email || 'Unknown owner'}
                         </option>
