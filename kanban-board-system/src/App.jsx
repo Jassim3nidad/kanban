@@ -32,7 +32,8 @@ export default function App() {
       } else if (event === 'SIGNED_OUT') {
         navigate('/');
       } else if (event === 'PASSWORD_RECOVERY') {
-        navigate('/change-password');
+        localStorage.setItem('supabase_password_recovery', 'true');
+        navigate('/change-password', { state: { isRecovery: true } });
       }
     });
 

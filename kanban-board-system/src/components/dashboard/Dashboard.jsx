@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient.js';
 import SignOut from '../auth/SignOut';
 import Board from '../board/Board';
@@ -293,6 +294,9 @@ export default function Dashboard({ session }) {
               {userProfile?.role === 'admin' ? 'Administrator' : 'Team Member'}
             </span>
           </div>
+          <Link to="/change-password" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
+            Change Password
+          </Link>
           <SignOut />
         </div>
       </header>
