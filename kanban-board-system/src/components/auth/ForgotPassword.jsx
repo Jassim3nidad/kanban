@@ -19,19 +19,43 @@ export default function ForgotPassword() {
     setError(null);
     setSuccess(null);
 
-    // Redirect URL should point to our site's root or a route that handles reset.
-    // Supabase will redirect back, and App.jsx will catch the PASSWORD_RECOVERY event
-    const redirectToUrl = `${window.location.origin}/`;
+    try {
+      // 1. Check if the email exists in our users table
+      const { data: userProfile, error: profileError } = await supabase
+        .from('users')
+        .select('email')
+        .eq('email', email.trim().toLowerCase())
+        .maybeSingle();
 
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectToUrl,
-    });
+      if (profileError) {
+        setError('An error occurred while verifying the email. Please try again.');
+        setLoading(false);
+        return;
+      }
 
-    setLoading(false);
-    if (resetError) {
-      setError(resetError.message);
-    } else {
-      setSuccess('Reset link sent! Please check your email inbox.');
+      if (!userProfile) {
+        setError('No account found with this email address.');
+        setLoading(false);
+        return;
+      }
+
+      // 2. Redirect URL should point to our site's root or a route that handles reset.
+      // Supabase will redirect back, and App.jsx will catch the PASSWORD_RECOVERY event
+      const redirectToUrl = `${window.location.origin}/`;
+
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+        redirectTo: redirectToUrl,
+      });
+
+      if (resetError) {
+        setError(resetError.message);
+      } else {
+        setSuccess('Reset link sent! Please check your email inbox.');
+      }
+    } catch (err) {
+      setError(err.message || 'An unexpected error occurred.');
+    } finally {
+      setLoading(false);
     }
   };
 
