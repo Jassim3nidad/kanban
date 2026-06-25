@@ -355,38 +355,50 @@ create policy "Allow anyone to fetch active shared links, and creators to view t
     created_by = auth.uid()
   );
 
-create policy "Allow owners and editors to generate shared links"
-  on public.shared_links for insert
-  with check (
-    exists (
-      select 1 from public.boards
-      where boards.board_id = shared_links.board_id and (
-        boards.owner_id = auth.uid() or
-        exists (
-          select 1 from public.board_members
-          where board_members.board_id = shared_links.board_id and board_members.user_id = auth.uid() and board_members.role in ('editor', 'owner')
-        )
+-- SECURITY DEFINER functions to break infinite recursion cycle between boards and shared_links
+create or replace function public.is_board_owner_or_editor(board_uuid uuid)
+returns boolean as $$
+declare
+  is_valid boolean;
+begin
+  select exists (
+    select 1 from public.boards
+    where board_id = board_uuid and (
+      owner_id = auth.uid() or
+      exists (
+        select 1 from public.board_members
+        where board_members.board_id = board_uuid and board_members.user_id = auth.uid() and board_members.role in ('editor', 'owner')
       )
     )
-  );
+  ) into is_valid;
+  return is_valid;
+end;
+$$ language plpgsql security definer;
+
+create or replace function public.is_board_owner(board_uuid uuid)
+returns boolean as $$
+declare
+  is_valid boolean;
+begin
+  select exists (
+    select 1 from public.boards
+    where board_id = board_uuid and owner_id = auth.uid()
+  ) into is_valid;
+  return is_valid;
+end;
+$$ language plpgsql security definer;
+
+create policy "Allow owners and editors to generate shared links"
+  on public.shared_links for insert
+  with check (public.is_board_owner_or_editor(board_id));
 
 create policy "Allow owners to update shared links"
   on public.shared_links for update
-  using (
-    exists (
-      select 1 from public.boards
-      where boards.board_id = shared_links.board_id and boards.owner_id = auth.uid()
-    )
-  );
+  using (public.is_board_owner(board_id));
 
 create policy "Allow owners to delete shared links"
   on public.shared_links for delete
-  using (
-    exists (
-      select 1 from public.boards
-      where boards.board_id = shared_links.board_id and boards.owner_id = auth.uid()
-    )
-  );
+  using (public.is_board_owner(board_id));
 
 -- =========================================
 -- REALTIME SUBSCRIPTIONS

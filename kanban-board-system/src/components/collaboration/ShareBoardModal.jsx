@@ -123,11 +123,6 @@ export default function ShareBoardModal({ boardId, onClose }) {
           )}
         </div>
 
-        <div className="modal-footer" style={{ marginTop: '0.5rem' }}>
-          <button className="btn btn-secondary" onClick={onClose}>
-            Close
-          </button>
-        </div>
       </div>
     </div>
   );
